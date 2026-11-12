@@ -1,0 +1,14 @@
+{
+    "name": "dagalakisgeo/woo-quote-request",
+    "description": "Lets visitors request a quote for WooCommerce products sold without a public price.",
+    "type": "wordpress-plugin",
+    "license": "GPL-2.0-or-later",
+    "require": {
+        "php": ">=8.1"
+    },
+    "autoload": {
+        "psr-4": {
+            "Dagalakisgeo\\WooQuoteRequest\\": "src/"
+        }
+    }
+}
