@@ -13,6 +13,6 @@
  * Update URI: https://github.com/dagalakisgeo/woo-quote-request
  */
 
-if (!defined('ABSPATH')) {
+if ( ! defined ( 'ABSPATH' ) ) {
     exit; // Exit if accessed directly.
 }
