@@ -14,6 +14,8 @@
  * Update URI: https://github.com/dagalakisgeo/woo-quote-request
  */
 
+namespace Dagalakisgeo\WooQuoteRequest;
+
 if ( ! defined( 'ABSPATH' ) ) {
     exit; // Exit if accessed directly.
 }
@@ -35,3 +37,11 @@ if ( ! file_exists( __DIR__ . '/vendor/autoload.php' ) ) {
 }
 
 require_once __DIR__ . '/vendor/autoload.php';
+
+add_action(
+    'plugins_loaded',
+    function () {
+        $plugin = new Plugin( __FILE__ );
+        $plugin->register();
+    }
+);
