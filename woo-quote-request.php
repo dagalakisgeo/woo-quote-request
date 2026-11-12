@@ -7,6 +7,8 @@
  * Requires at least: 6.5
  * Requires PHP: 8.1
  * Requires Plugins: woocommerce
+ * WC requires at least:  11.3
+ * WC tested up to:  11.3
  * Author: Giorgos Dagalakis
  * Author URI: https://github.com/dagalakisgeo
  * License: GPL v2 or later
@@ -16,6 +18,8 @@
  */
 
 namespace Dagalakisgeo\WooQuoteRequest;
+
+use Automattic\WooCommerce\Utilities\FeaturesUtil;
 
 if ( ! defined( 'ABSPATH' ) ) {
     exit; // Exit if accessed directly.
