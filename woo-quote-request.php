@@ -52,6 +52,14 @@ if ( ! file_exists( __DIR__ . '/vendor/autoload.php' ) ) {
 
 require_once __DIR__ . '/vendor/autoload.php';
 
+register_activation_hook(
+    __FILE__,
+    function () {
+        $installer = new Installer();
+        $installer->install();
+    }
+);
+
 add_action(
     'plugins_loaded',
     function () {
