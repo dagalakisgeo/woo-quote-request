@@ -25,6 +25,15 @@ if ( ! defined( 'ABSPATH' ) ) {
     exit; // Exit if accessed directly.
 }
 
+add_action(
+    'before_woocommerce_init',
+    function () {
+        if ( class_exists( FeaturesUtil::class ) ) {
+            FeaturesUtil::declare_compatibility( 'custom_order_tables', __FILE__, true );
+        }
+    }
+);
+
 if ( ! file_exists( __DIR__ . '/vendor/autoload.php' ) ) {
     add_action(
         'admin_notices',
