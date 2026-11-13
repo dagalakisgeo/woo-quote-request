@@ -33,6 +33,35 @@ final class Installer {
      * Creates or updates the quotes table.
      */
     public function install(): void {
-        // Filled in commit 14.
+        require_once ABSPATH . 'wp-admin/includes/upgrade.php';
+
+        dbDelta( $this->schema() );
+
+        update_option( self::VERSION_OPTION, self::SCHEMA_VERSION );
+    }
+
+    /**
+     * Returns the CREATE TABLE statement for the quotes table.
+     */
+    private function schema(): string {
+        global $wpdb;
+
+        $table           = self::table_name();
+        $charset_collate = $wpdb->get_charset_collate();
+
+        return "CREATE TABLE {$table} (
+            id bigint(20) unsigned NOT NULL AUTO_INCREMENT,
+            status varchar(20) NOT NULL DEFAULT 'new',
+            customer_name varchar(100) NOT NULL,
+            customer_email varchar(100) NOT NULL,
+            customer_phone varchar(40) NOT NULL DEFAULT '',
+            message text NOT NULL,
+            items longtext NOT NULL,
+            created_at datetime NOT NULL,
+            updated_at datetime NOT NULL,
+            PRIMARY KEY  (id),
+            KEY status (status),
+            KEY created_at (created_at)
+        ) {$charset_collate};";
     }
 }
