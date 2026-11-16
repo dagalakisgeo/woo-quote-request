@@ -16,6 +16,6 @@ final class Plugin {
      * Registers the plugin’s hooks with WordPress.
      */
     public function register(): void {
-        // Empty for now. From Thursday it adds the installer and button hooks.
+        add_action( 'init', array( new Installer(), 'maybe_install' ) );
     }
 }

@@ -41,6 +41,15 @@ final class Installer {
     }
 
     /**
+     * Runs the installer when the stored schema version differs from the code's.
+     */
+    public function maybe_install(): void {
+        if ( get_option( self::VERSION_OPTION ) !== self::SCHEMA_VERSION ) {
+            $this->install();
+        }
+    }
+
+    /**
      * Returns the CREATE TABLE statement for the quotes table.
      */
     private function schema(): string {
