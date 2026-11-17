@@ -1,0 +1,23 @@
+# Greek translation for Woo Quote Request.
+# This file is distributed under the same license as the Woo Quote Request plugin.
+msgid ""
+msgstr ""
+"Project-Id-Version: Woo Quote Request 0.1.0\n"
+"Language: el\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"Plural-Forms: nplurals=2; plural=(n != 1);\n"
+"X-Domain: woo-quote-request\n"
+
+#: src/QuoteButton.php
+msgid "Add to quote"
+msgstr "Προσθήκη στην προσφορά"
+
+#: woo-quote-request.php
+msgid "Woo Quote Request needs its Composer files. Run composer install in the plugin folder."
+msgstr "Το Woo Quote Request χρειάζεται τα αρχεία του Composer. Εκτελέστε composer install στον φάκελο του πρόσθετου."
+
+#: woo-quote-request.php
+msgid "Woo Quote Request needs WooCommerce. Activate WooCommerce, or deactivate this plugin."
+msgstr "Το Woo Quote Request χρειάζεται το WooCommerce. Ενεργοποιήστε το WooCommerce ή απενεργοποιήστε αυτό το πρόσθετο."
