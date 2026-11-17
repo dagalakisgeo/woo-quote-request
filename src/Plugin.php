@@ -13,9 +13,10 @@ final class Plugin {
     public function __construct( private readonly string $plugin_file ) {}
 
     /**
-     * Registers the plugin’s hooks with WordPress.
+     * Registers the plugin's hooks with WordPress.
      */
     public function register(): void {
         add_action( 'init', array( new Installer(), 'maybe_install' ) );
+        add_action( 'woocommerce_single_product_summary', array( new QuoteButton(), 'render' ), 31 );
     }
 }
