@@ -7,13 +7,14 @@
  * Requires at least: 6.5
  * Requires PHP: 8.1
  * Requires Plugins: woocommerce
- * WC requires at least:  11.3
- * WC tested up to:  11.3
+ * WC requires at least: 11.3
+ * WC tested up to: 11.3
  * Author: Giorgos Dagalakis
  * Author URI: https://github.com/dagalakisgeo
  * License: GPL v2 or later
  * License URI: https://www.gnu.org/licenses/gpl-2.0.html
  * Text Domain: woo-quote-request
+ * Domain Path: /languages
  * Update URI: https://github.com/dagalakisgeo/woo-quote-request
  */
 
@@ -31,6 +32,13 @@ add_action(
         if ( class_exists( FeaturesUtil::class ) ) {
             FeaturesUtil::declare_compatibility( 'custom_order_tables', __FILE__, true );
         }
+    }
+);
+
+add_action(
+    'init',
+    function () {
+        load_plugin_textdomain( 'woo-quote-request', false, dirname( plugin_basename( __FILE__ ) ) . '/languages' );
     }
 );
 
