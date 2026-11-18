@@ -105,6 +105,11 @@ final class QuotesController {
                 ),
                 'validate_callback' => array( $this, 'validate_items' ),
             ),
+            'website' => array(
+                'type'              => 'string',
+                'default'           => '',
+                'validate_callback' => array( $this, 'validate_honeypot' ),
+            ),
         );
     }
 
@@ -156,6 +161,26 @@ final class QuotesController {
                     )
                 );
             }
+        }
+
+        return true;
+    }
+
+    /**
+     * Checks the honeypot field, which only bots fill in.
+     */
+    public function validate_honeypot( mixed $value, WP_REST_Request $request, string $param ): bool|WP_Error {
+        $schema_check = rest_validate_request_arg( $value, $request, $param );
+
+        if ( is_wp_error( $schema_check ) ) {
+            return $schema_check;
+        }
+
+        if ( '' !== $value ) {
+            return new WP_Error(
+                'dgwqr_rejected',
+                __( 'The request could not be accepted.', 'woo-quote-request' )
+            );
         }
 
         return true;
