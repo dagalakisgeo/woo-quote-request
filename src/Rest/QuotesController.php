@@ -5,9 +5,11 @@
 
 namespace Dagalakisgeo\WooQuoteRequest\Rest;
 
+use Dagalakisgeo\WooQuoteRequest\QuoteRepository;
 use WC_Product;
 use WP_Error;
 use WP_REST_Request;
+use WP_REST_Response;
 use WP_REST_Server;
 
 /**
@@ -24,6 +26,11 @@ final class QuotesController {
      * Path of the quotes route inside the namespace.
      */
     public const ROUTE_BASE = '/quotes';
+
+    /**
+     * Keeps the repository that saves quotes.
+     */
+    public function __construct( private readonly QuoteRepository $quotes ) {}
 
     /**
      * Registers POST /quotes with WordPress.
@@ -49,21 +56,21 @@ final class QuotesController {
             'name'    => array(
                 'type'              => 'string',
                 'required'          => true,
-                'maxLength'         => 100, 
+                'maxLength'         => 100,
                 'format'            => 'text-field',
                 'validate_callback' => array( $this, 'validate_name' ),
             ),
             'email'   => array(
                 'type'              => 'string',
                 'required'          => true,
-                'maxLength'         => 100, 
+                'maxLength'         => 100,
                 'format'            => 'email',
                 'validate_callback' => 'rest_validate_request_arg',
             ),
             'phone'   => array(
                 'type'              => 'string',
                 'default'           => '',
-                'maxLength'         => 40, 
+                'maxLength'         => 40,
                 'format'            => 'text-field',
                 'pattern'           => '^[0-9 +()-]*$',
                 'validate_callback' => 'rest_validate_request_arg',
@@ -155,13 +162,39 @@ final class QuotesController {
     }
 
     /**
-     * Answers a valid quote request. A stub until the next pull request saves it.
+     * Saves a valid quote and answers 201 with its id.
      */
-    public function create_item( WP_REST_Request $request ): WP_Error {
-        return new WP_Error(
-            'dgwqr_not_implemented',
-            'Saving quotes arrives in the next pull request.',
-            array( 'status' => 501 )
+    public function create_item( WP_REST_Request $request ): WP_REST_Response|WP_Error {
+        $items = array();
+
+        foreach ( $request['items'] as $item ) {
+            $product_id = (int) $item['product_id'];
+
+            $items[] = array(
+                'product_id' => $product_id,
+                'name'       => wc_get_product( $product_id )->get_name(),
+                'quantity'   => (int) $item['quantity'],
+            );
+        }
+
+        $id = $this->quotes->insert(
+            array(
+                'name'    => $request['name'],
+                'email'   => $request['email'],
+                'phone'   => $request['phone'],
+                'message' => $request['message'],
+                'items'   => $items,
+            )
         );
+
+        if ( null === $id ) {
+            return new WP_Error(
+                'dgwqr_db_error',
+                __( 'The quote could not be saved.', 'woo-quote-request' ),
+                array( 'status' => 500 )
+            );
+        }
+
+        return new WP_REST_Response( array( 'id' => $id ), 201 );
     }
 }
