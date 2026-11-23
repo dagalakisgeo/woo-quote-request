@@ -8,6 +8,7 @@ namespace Dagalakisgeo\WooQuoteRequest\Rest;
 use Dagalakisgeo\WooQuoteRequest\Plugin;
 use Dagalakisgeo\WooQuoteRequest\QuoteRepository;
 use Dagalakisgeo\WooQuoteRequest\QuoteStatus;
+use Dagalakisgeo\WooQuoteRequest\RateLimiter;
 use DateTimeImmutable;
 use DateTimeZone;
 use WC_Product;
@@ -32,9 +33,12 @@ final class QuotesController {
     public const ROUTE_BASE = '/quotes';
 
     /**
-     * Keeps the repository that saves and reads quotes.
+     * Keeps the repository and the rate limiter.
      */
-    public function __construct( private readonly QuoteRepository $quotes ) {}
+    public function __construct(
+        private readonly QuoteRepository $quotes,
+        private readonly RateLimiter $limiter,
+    ) {}
 
     /**
      * Registers POST and GET /quotes, and PATCH /quotes/{id}, with WordPress.
@@ -262,9 +266,25 @@ final class QuotesController {
     }
 
     /**
-     * Saves a valid quote and answers 201 with its id.
+     * Saves a valid quote and answers 201 with its id, or 429 when the address has reached the limit.
      */
     public function create_item( WP_REST_Request $request ): WP_REST_Response|WP_Error {
+        $ip   = $this->limiter->client_ip();
+        $wait = $this->limiter->retry_after( $ip );
+
+        if ( $wait > 0 ) {
+            $response = rest_convert_error_to_response(
+                new WP_Error(
+                    'dgwqr_rate_limited',
+                    __( 'Too many quote requests. Try again later.', 'woo-quote-request' ),
+                    array( 'status' => 429 )
+                )
+            );
+            $response->header( 'Retry-After', (string) $wait );
+
+            return $response;
+        }
+
         $items = array();
 
         foreach ( $request['items'] as $item ) {
@@ -294,6 +314,8 @@ final class QuotesController {
                 array( 'status' => 500 )
             );
         }
+
+        $this->limiter->record( $ip );
 
         return new WP_REST_Response( array( 'id' => $id ), 201 );
     }
