@@ -6,7 +6,7 @@
 namespace Dagalakisgeo\WooQuoteRequest;
 
 /**
- * Saves quotes to the plugin's table and reads them back.
+ * Saves quotes to the plugin's table, reads them back and changes their status.
  */
 final class QuoteRepository {
 
@@ -88,5 +88,46 @@ final class QuoteRepository {
         $rows = $wpdb->get_results( $wpdb->prepare( $sql, $args ), ARRAY_A );
 
         return is_array( $rows ) ? $rows : array();
+    }
+
+    /**
+     * Returns one quote by its id, or null when there is none.
+     *
+     * @param int $id The quote's id.
+     * @return array|null The row keyed by column name, or null.
+     */
+    public function find( int $id ): ?array {
+        global $wpdb;
+
+        $row = $wpdb->get_row(
+            $wpdb->prepare( 'SELECT * FROM %i WHERE id = %d', Installer::table_name(), $id ),
+            ARRAY_A
+        );
+
+        return is_array( $row ) ? $row : null;
+    }
+
+    /**
+     * Sets one quote's status and its updated_at time.
+     *
+     * @param int         $id     The quote's id.
+     * @param QuoteStatus $status The new status.
+     * @return bool True when the update ran, false when the database refused it.
+     */
+    public function update_status( int $id, QuoteStatus $status ): bool {
+        global $wpdb;
+
+        $result = $wpdb->update(
+            Installer::table_name(),
+            array(
+                'status'     => $status->value,
+                'updated_at' => current_time( 'mysql', true ),
+            ),
+            array( 'id' => $id ),
+            array( '%s', '%s' ),
+            array( '%d' )
+        );
+
+        return false !== $result;
     }
 }

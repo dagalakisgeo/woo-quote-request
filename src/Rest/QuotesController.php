@@ -37,7 +37,7 @@ final class QuotesController {
     public function __construct( private readonly QuoteRepository $quotes ) {}
 
     /**
-     * Registers POST /quotes and GET /quotes with WordPress.
+     * Registers POST and GET /quotes, and PATCH /quotes/{id}, with WordPress.
      */
     public function register_routes(): void {
         register_rest_route(
@@ -56,6 +56,17 @@ final class QuotesController {
                     'permission_callback' => array( $this, 'admin_permissions_check' ),
                     'args'                => $this->get_items_args(),
                 ),
+            )
+        );
+
+        register_rest_route(
+            self::ROUTE_NAMESPACE,
+            self::ROUTE_BASE . '/(?P<id>\d+)',
+            array(
+                'methods'             => 'PATCH',
+                'callback'            => array( $this, 'update_item' ),
+                'permission_callback' => array( $this, 'admin_permissions_check' ),
+                'args'                => $this->update_item_args(),
             )
         );
     }
@@ -152,6 +163,25 @@ final class QuotesController {
             ),
             'status'   => array(
                 'type'              => 'string',
+                'enum'              => QuoteStatus::values(),
+                'validate_callback' => 'rest_validate_request_arg',
+            ),
+        );
+    }
+
+    /**
+     * Returns the args of PATCH /quotes/{id}: the id from the path and the new status.
+     */
+    private function update_item_args(): array {
+        return array(
+            'id'     => array(
+                'type'              => 'integer',
+                'minimum'           => 1,
+                'validate_callback' => 'rest_validate_request_arg',
+            ),
+            'status' => array(
+                'type'              => 'string',
+                'required'          => true,
                 'enum'              => QuoteStatus::values(),
                 'validate_callback' => 'rest_validate_request_arg',
             ),
@@ -290,6 +320,38 @@ final class QuotesController {
         $response->header( 'X-WP-TotalPages', (string) (int) ceil( $total / $per_page ) );
 
         return $response;
+    }
+
+    /**
+     * Changes one quote's status and answers with the whole quote.
+     */
+    public function update_item( WP_REST_Request $request ): WP_REST_Response|WP_Error {
+        $id    = $request['id'];
+        $quote = $this->quotes->find( $id );
+
+        if ( null === $quote ) {
+            return new WP_Error(
+                'dgwqr_quote_not_found',
+                __( 'Quote not found.', 'woo-quote-request' ),
+                array( 'status' => 404 )
+            );
+        }
+
+        $status = QuoteStatus::from( $request['status'] );
+
+        if ( $status->value !== $quote['status'] ) {
+            if ( ! $this->quotes->update_status( $id, $status ) ) {
+                return new WP_Error(
+                    'dgwqr_db_error',
+                    __( 'The quote could not be updated.', 'woo-quote-request' ),
+                    array( 'status' => 500 )
+                );
+            }
+
+            $quote = $this->quotes->find( $id );
+        }
+
+        return new WP_REST_Response( $this->prepare_item( $quote ), 200 );
     }
 
     /**
