@@ -5,7 +5,11 @@
 
 namespace Dagalakisgeo\WooQuoteRequest\Rest;
 
+use Dagalakisgeo\WooQuoteRequest\Plugin;
 use Dagalakisgeo\WooQuoteRequest\QuoteRepository;
+use Dagalakisgeo\WooQuoteRequest\QuoteStatus;
+use DateTimeImmutable;
+use DateTimeZone;
 use WC_Product;
 use WP_Error;
 use WP_REST_Request;
@@ -28,24 +32,39 @@ final class QuotesController {
     public const ROUTE_BASE = '/quotes';
 
     /**
-     * Keeps the repository that saves quotes.
+     * Keeps the repository that saves and reads quotes.
      */
     public function __construct( private readonly QuoteRepository $quotes ) {}
 
     /**
-     * Registers POST /quotes with WordPress.
+     * Registers POST /quotes and GET /quotes with WordPress.
      */
     public function register_routes(): void {
         register_rest_route(
             self::ROUTE_NAMESPACE,
             self::ROUTE_BASE,
             array(
-                'methods'             => WP_REST_Server::CREATABLE,
-                'callback'            => array( $this, 'create_item' ),
-                'permission_callback' => '__return_true',
-                'args'                => $this->create_item_args(),
+                array(
+                    'methods'             => WP_REST_Server::CREATABLE,
+                    'callback'            => array( $this, 'create_item' ),
+                    'permission_callback' => '__return_true',
+                    'args'                => $this->create_item_args(),
+                ),
+                array(
+                    'methods'             => WP_REST_Server::READABLE,
+                    'callback'            => array( $this, 'get_items' ),
+                    'permission_callback' => array( $this, 'admin_permissions_check' ),
+                    'args'                => $this->get_items_args(),
+                ),
             )
         );
+    }
+
+    /**
+     * Allows only users who can manage the shop.
+     */
+    public function admin_permissions_check(): bool {
+        return current_user_can( Plugin::CAPABILITY );
     }
 
     /**
@@ -109,6 +128,32 @@ final class QuotesController {
                 'type'              => 'string',
                 'default'           => '',
                 'validate_callback' => array( $this, 'validate_honeypot' ),
+            ),
+        );
+    }
+
+    /**
+     * Returns the args of GET /quotes: paging and an optional status filter.
+     */
+    private function get_items_args(): array {
+        return array(
+            'page'     => array(
+                'type'              => 'integer',
+                'default'           => 1,
+                'minimum'           => 1,
+                'validate_callback' => 'rest_validate_request_arg',
+            ),
+            'per_page' => array(
+                'type'              => 'integer',
+                'default'           => 20,
+                'minimum'           => 1,
+                'maximum'           => 100,
+                'validate_callback' => 'rest_validate_request_arg',
+            ),
+            'status'   => array(
+                'type'              => 'string',
+                'enum'              => QuoteStatus::values(),
+                'validate_callback' => 'rest_validate_request_arg',
             ),
         );
     }
@@ -221,5 +266,53 @@ final class QuotesController {
         }
 
         return new WP_REST_Response( array( 'id' => $id ), 201 );
+    }
+
+    /**
+     * Lists one page of quotes, newest first, with the totals in two headers.
+     */
+    public function get_items( WP_REST_Request $request ): WP_REST_Response {
+        $status   = null === $request['status'] ? null : QuoteStatus::from( $request['status'] );
+        $per_page = $request['per_page'];
+        $offset   = ( $request['page'] - 1 ) * $per_page;
+
+        $total = $this->quotes->count( $status );
+        $rows  = $this->quotes->find_page( $status, $per_page, $offset );
+
+        $data = array();
+
+        foreach ( $rows as $row ) {
+            $data[] = $this->prepare_item( $row );
+        }
+
+        $response = new WP_REST_Response( $data, 200 );
+        $response->header( 'X-WP-Total', (string) $total );
+        $response->header( 'X-WP-TotalPages', (string) (int) ceil( $total / $per_page ) );
+
+        return $response;
+    }
+
+    /**
+     * Turns a table row into the quote the API returns.
+     */
+    private function prepare_item( array $row ): array {
+        return array(
+            'id'         => (int) $row['id'],
+            'status'     => $row['status'],
+            'name'       => $row['customer_name'],
+            'email'      => $row['customer_email'],
+            'phone'      => $row['customer_phone'],
+            'message'    => $row['message'],
+            'items'      => json_decode( $row['items'], true ),
+            'created_at' => $this->to_iso8601( $row['created_at'] ),
+            'updated_at' => $this->to_iso8601( $row['updated_at'] ),
+        );
+    }
+
+    /**
+     * Turns a UTC date from the table into ISO 8601 with its offset.
+     */
+    private function to_iso8601( string $mysql_utc ): string {
+        return ( new DateTimeImmutable( $mysql_utc, new DateTimeZone( 'UTC' ) ) )->format( DATE_ATOM );
     }
 }
