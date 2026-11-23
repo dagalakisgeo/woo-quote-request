@@ -10,6 +10,12 @@ namespace Dagalakisgeo\WooQuoteRequest;
  */
 final class Plugin {
 
+    public const CAPABILITY = 'manage_woocommerce';
+
+    /**
+     * The capability a user needs to read and change quotes.
+     */
+
     public function __construct( private readonly string $plugin_file ) {}
 
     /**
