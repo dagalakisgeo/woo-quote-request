@@ -23,6 +23,6 @@ final class Plugin {
     public function register(): void {
         add_action( 'init', array( new Installer(), 'maybe_install' ) );
         add_action( 'woocommerce_single_product_summary', array( new QuoteButton(), 'render' ), 31 );
-        add_action( 'rest_api_init', array( new Rest\QuotesController( new QuoteRepository() ), 'register_routes' ) );
+        add_action( 'rest_api_init', array( new Rest\QuotesController( new QuoteRepository(), new RateLimiter() ), 'register_routes' ) );
     }
 }
