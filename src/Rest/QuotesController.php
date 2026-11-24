@@ -6,6 +6,7 @@
 namespace Dagalakisgeo\WooQuoteRequest\Rest;
 
 use Dagalakisgeo\WooQuoteRequest\Plugin;
+use Dagalakisgeo\WooQuoteRequest\QuoteMailer;
 use Dagalakisgeo\WooQuoteRequest\QuoteRepository;
 use Dagalakisgeo\WooQuoteRequest\QuoteStatus;
 use Dagalakisgeo\WooQuoteRequest\RateLimiter;
@@ -33,11 +34,12 @@ final class QuotesController {
     public const ROUTE_BASE = '/quotes';
 
     /**
-     * Keeps the repository and the rate limiter.
+     * Keeps the repository, the rate limiter and the mailer.
      */
     public function __construct(
         private readonly QuoteRepository $quotes,
         private readonly RateLimiter $limiter,
+        private readonly QuoteMailer $mailer,
     ) {}
 
     /**
@@ -266,7 +268,8 @@ final class QuotesController {
     }
 
     /**
-     * Saves a valid quote and answers 201 with its id, or 429 when the address has reached the limit.
+     * Saves a valid quote, emails the shop and the customer, and answers 201 with its id,
+     * or 429 when the address has reached the limit.
      */
     public function create_item( WP_REST_Request $request ): WP_REST_Response|WP_Error {
         $ip   = $this->limiter->client_ip();
@@ -297,15 +300,15 @@ final class QuotesController {
             );
         }
 
-        $id = $this->quotes->insert(
-            array(
-                'name'    => $request['name'],
-                'email'   => $request['email'],
-                'phone'   => $request['phone'],
-                'message' => $request['message'],
-                'items'   => $items,
-            )
+        $quote = array(
+            'name'    => $request['name'],
+            'email'   => $request['email'],
+            'phone'   => $request['phone'],
+            'message' => $request['message'],
+            'items'   => $items,
         );
+
+        $id = $this->quotes->insert( $quote );
 
         if ( null === $id ) {
             return new WP_Error(
@@ -316,6 +319,9 @@ final class QuotesController {
         }
 
         $this->limiter->record( $ip );
+
+        $this->mailer->send_shop_notice( $id, $quote );
+        $this->mailer->send_customer_receipt( $id, $quote );
 
         return new WP_REST_Response( array( 'id' => $id ), 201 );
     }
